@@ -9,6 +9,11 @@ const sassMiddleware = require('node-sass-middleware');
 const serveFavicon = require('serve-favicon');
 
 const indexRouter = require('./routes/index');
+const authenticationRouter = require('./routes/authentication');
+
+const expressSession = require('express-session');
+const MongoStore = require('connect-mongo')(expressSession);
+const mongoose = require('mongoose');
 
 const app = express();
 
@@ -29,7 +34,19 @@ app.use(sassMiddleware({
   sourceMap: true
 }));
 
+app.use(expressSession({
+  secret: process.env.SESSION_SECRET,
+  cookie: { maxAge: 60 * 60 * 24 * 1000 },
+  resave: true,
+  saveUninitialized: false,
+  store: new MongoStore({
+    mongooseConnection: mongoose.connection,
+    ttl: 24 * 60 * 60
+  })
+}));
+
 app.use('/', indexRouter);
+app.use('/authentication', authenticationRouter);
 
 // Catch missing routes and forward to error handler
 app.use((req, res, next) => {
